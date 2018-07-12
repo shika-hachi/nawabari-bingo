@@ -1,9 +1,11 @@
 ﻿<html>
-<!-- 手打ちそば -->
+<!-- 昔ながらの手打ちそば -->
 
 <head>
-<script>
+<meta charset="utf-8">
+<title>ナワバリビンゴジェネレーター</title>
 
+<script type="text/javascript">
 var weaponList = [
 	"好きなブキで",
 	"シューターで",
@@ -23,10 +25,10 @@ var conditionList = [
 	"8 キル",
 	"9 キル",
 	"10 キル",
-	"0 デス",
-	"1 デス",
-	"2 デス",
-	"3 デス",
+	"0 デス以内",
+	"1 デス以内",
+	"2 デス以内",
+	"3 デス以内",
 	"塗り 700P",
 	"塗り 800P",
 	"塗り 900P",
@@ -40,63 +42,246 @@ var conditionList = [
 	"スペシャル 7回発動",
 ];
 
-document.write("<table class=\"bingotable\">");
+var numTable = [
+	[ [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,0,0], ],
+	[ [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,0,0], ],
+	[ [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,0,0], ],
+	[ [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,0,0], ],
+	[ [0,0,0], [0,0,0], [0,0,0], [0,0,0], [0,0,0], ],
+];
+var numTableColumns = numTable.length;
+var numTableRows = numTable[0].length;
 
-var i = 0;
-var j = 0;
-var index = 0;
-for (i=0 ; i<5; i++)
+// URLパラメータかCookieからビンゴデータ読み込み
+var urlArg = GetUrlArgs();
+var numsStr = urlArg['nums'];
+if (null == numsStr)
 {
-	document.write("<tr>");
-	for (j=0 ; j<5; j++)
-	{
-		document.write("<td>");
-
-		if ((i==2) && (j==2))
-		{
-			document.write(weaponList[0]);
-			document.write("<br>");
-			document.write(conditionList[0]);
-			document.write("</td>");
-		}
-		else
-		{
-			index = Math.floor( Math.random() * weaponList.length );
-			document.write(weaponList[index]);
-			document.write("<br>");
-			index = Math.floor( Math.random() * conditionList.length );
-			document.write(conditionList[index]);
-			document.write("</td>");
-		}
-
-
-	}
-	document.write("</tr>");
+	var cookies = GetCookies();
+	numsStr = cookies['nums'];
 }
 
-document.write("</table>");
-document.write("<br>");
+if (null != numsStr)
+{
+	DeserializeBingo(numsStr);
+}
+else
+{
+	// ビンゴ表のデータを生成
+	for (var i=0; i<numTableColumns; i++)
+	{
+		for (var j=0; j<numTable[0].length; j++)
+		{
+			numTable[i][j][0] = Math.floor( Math.random() * weaponList.length );
+			numTable[i][j][1] = Math.floor( Math.random() * conditionList.length );
+		}
+	}
+	// ビンゴの中央はフリーマス
+	numTable[2][2][0] = 0;
+	numTable[2][2][1] = 0;
+}
 
+SaveBingo();
+
+// URLパラメータを配列で取得
+function GetUrlArgs()
+{
+	var result = new Array();
+	var pair = location.search.substring(1).split('&');
+	for (var i=0; pair[i]; i++)
+	{
+		var kv = pair[i].split('=');
+		result[kv[0]] = decodeURIComponent(kv[1]);
+	}
+	return result;
+}
+// Cookieを配列で取得
+function GetCookies()
+{
+	var result = new Array();
+	var allcookies = document.cookie;
+	if (allcookies != '')
+	{
+		var cookies = allcookies.split('; ');
+		for (var i=0; i<cookies.length; i++)
+		{
+			var cookie = cookies[i].split('=');
+			result[cookie[0]] = decodeURIComponent(cookie[1]);
+		}
+	}
+	return result;
+}
+
+// ビンゴのデータを文字列にシリアライズ
+function SerializeBingo()
+{
+	var numsStr = '';
+	for (var i=0; i<numTableColumns; i++)
+	{
+		for (var j=0; j<numTableRows; j++)
+		{
+			numsStr = numsStr.concat(numTable[i][j][0]) + '-';
+			numsStr = numsStr.concat(numTable[i][j][1]) + '-';
+			numsStr = numsStr.concat(numTable[i][j][2]) + '-';
+		}
+	}
+	return numsStr;
+}
+// ビンゴのデータを文字列からデシリアライズ
+function DeserializeBingo(numsStr)
+{
+	var numsArray = numsStr.split('-');
+
+	for (var i=0; i<numTableColumns; i++)
+	{
+		for (var j=0; j<numTableRows; j++)
+		{
+			var index = (i * numTableRows * 3) + (j * 3);
+			numTable[i][j][0] = numsArray[index];
+			numTable[i][j][1] = numsArray[index + 1];
+			numTable[i][j][2] = numsArray[index + 2];
+		}
+	}
+}
+// ビンゴのデータをCookieに保存
+function SaveBingo()
+{
+	var numsStr = SerializeBingo();
+	document.cookie = 'nums=' + encodeURIComponent(numsStr);
+}
+// ビンゴをリセットする
+function ResetBingo()
+{
+	if (window.confirm('ビンゴを作り直しますか？'))
+	{
+		// Cookie消す
+		var date = new Date();
+		date.setTime( date.getTime() - 1 );
+		document.cookie = 'nums=; expires=' + date.toUTCString();
+
+		window.location.href = location.href.split('?')[0];
+	}
+}
+// ビンゴのデータをパラメータにしたURLをクリップボードにコピーする
+function CopyBingo()
+{
+	var numsStr = SerializeBingo();
+	var url = location.href.split('?')[0] + '?nums=' + encodeURIComponent(numsStr);
+
+	var temp = document.createElement('div');
+	temp.appendChild(document.createElement('pre')).textContent = url;
+	var s = temp.style;
+	s.position = 'fixed';
+	s.left = '-100%';
+	document.body.appendChild(temp);
+	document.getSelection().selectAllChildren(temp);
+	var result = document.execCommand('copy');
+	document.body.removeChild(temp);
+	alert('URLをコピーしました！');
+}
+
+// ビンゴのマスが押された時に呼ばれる
+function OnClickMassButton(row, column)
+{
+	var state = 0;
+	if (0 == numTable[row][column][2])
+	{
+		state = 1;
+	}
+	numTable[row][column][2] = state;
+	SetMassButton(row, column, state);
+	SaveBingo();
+}
+// ビンゴのマスの見た目を設定する
+function SetMassButton(row, column, state)
+{
+	var btn = document.getElementById('massbutton_' + row + '_' + column);
+	if (0 == state)
+	{
+		btn.className = 'massbutton_off';
+	}
+	else
+	{
+		btn.className = 'massbutton_on';
+	}
+}
 </script>
 
-<style>
-.bingotable {
-  border: 1px solid gray;
+<style type="text/css">
+body {
+  background: linear-gradient(#ccff99, #32cd32) fixed;
 }
-.bingotable th, .bingotable td {
-  border: 1px solid gray;
-  width: 120px;
-  height: 60px;
+.main {
+  margin: 0 auto;  
   text-align: center;
+}
+table.bingotable {
+  border: 0px solid gray;
+  margin-left: auto;
+  margin-right: auto;
+}
+table.bingotable th, .bingotable td {
+  border: 0px solid gray;
+}
+table.bingotable button {
+  width: 130px;
+  height: 70px;
+  border-style: none;
+}
+button.massbutton_off {
+  background-color: #dcdcdc;
+  color: #000000;
+}
+button.massbutton_on {
+  background-color: #1e90ff;
+  color: #ffffff;
+}
+input.inputbutton {
+  padding: 10px 20px;
+  margin: 10px;
 }
 </style>
 
 </head>
 
 <body>
+<div class="main">
+<h1>ナワバリ ビンゴ！</h1>
+<table class="bingotable">
+<script type="text/javascript">
+for (var i=0; i<numTableColumns; i++)
+{
+	document.write("<tr>");
+	for (var j=0; j<numTableRows; j++)
+	{
+		document.write("<td>");
+		document.write("<button id=\"massbutton_" + i + "_" + j + "\"");
+		if (0 == numTable[i][j][2])
+		{
+			document.write(" class=\"massbutton_off\"");
+		}
+		else
+		{
+			document.write(" class=\"massbutton_on\"");
+		}
+		document.write(" onclick=\"OnClickMassButton("+i+","+j+");\">");
+		document.write(weaponList[numTable[i][j][0]]);
+		document.write("<br>");
+		document.write(conditionList[numTable[i][j][1]]);
+		document.write("</button>");
+		document.write("</td>");
+	}
+	document.write("</tr>");
+}
+</script>
+</table>
 
-<input type="button" value="リセット" onclick="window.location.reload();" />
+<br>
+<input type="button" class="inputbutton" value="ビンゴを作り直す" onclick="ResetBingo();" />
+<input type="button" class="inputbutton" value="このビンゴのURLをコピー" onclick="CopyBingo();" />
 
+<hr>
+<div><a href="https://github.com/shika-hachi/nawabari-bingo/wiki">ナワバリビンゴジェネレーター Ver.1.0.0</a></div>
+</div>
 </body>
-
 </html>

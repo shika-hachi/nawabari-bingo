@@ -51,37 +51,44 @@ var numTable = [
 ];
 var numTableColumns = numTable.length;
 var numTableRows = numTable[0].length;
+LoadBingo();
 
 // URLパラメータかCookieからビンゴデータ読み込み
-var urlArg = GetUrlArgs();
-var numsStr = urlArg['nums'];
-if (null == numsStr)
+function LoadBingo()
 {
+	var urlArg = GetUrlArgs();
+	var numsStr = urlArg['nums'];
+	if (null != numsStr)
+	{
+		DeserializeBingo(numsStr);
+		SaveBingo();
+		window.location.href = location.href.split('?')[0];
+		return;
+	}
+
 	var cookies = GetCookies();
 	numsStr = cookies['nums'];
-}
-
-if (null != numsStr)
-{
-	DeserializeBingo(numsStr);
-}
-else
-{
-	// ビンゴ表のデータを生成
-	for (var i=0; i<numTableColumns; i++)
+	if (null != numsStr)
 	{
-		for (var j=0; j<numTable[0].length; j++)
-		{
-			numTable[i][j][0] = Math.floor( Math.random() * weaponList.length );
-			numTable[i][j][1] = Math.floor( Math.random() * conditionList.length );
-		}
+		DeserializeBingo(numsStr);
 	}
-	// ビンゴの中央はフリーマス
-	numTable[2][2][0] = 0;
-	numTable[2][2][1] = 0;
+	else
+	{
+		// ビンゴ表のデータを生成
+		for (var i=0; i<numTableColumns; i++)
+		{
+			for (var j=0; j<numTable[0].length; j++)
+			{
+				numTable[i][j][0] = Math.floor( Math.random() * weaponList.length );
+				numTable[i][j][1] = Math.floor( Math.random() * conditionList.length );
+			}
+		}
+		// ビンゴの中央はフリーマス
+		numTable[2][2][0] = 0;
+		numTable[2][2][1] = 0;
+	}
+	SaveBingo();
 }
-
-SaveBingo();
 
 // URLパラメータを配列で取得
 function GetUrlArgs()
@@ -281,7 +288,7 @@ for (var i=0; i<numTableColumns; i++)
 <input type="button" class="inputbutton" value="このビンゴのURLをコピー" onclick="CopyBingo();" />
 
 <hr>
-<div><a href="https://github.com/shika-hachi/nawabari-bingo/wiki">ナワバリビンゴジェネレーター Ver.1.0.0</a></div>
+<div><a href="https://github.com/shika-hachi/nawabari-bingo/wiki">ナワバリビンゴジェネレーター Ver.1.0.1</a></div>
 </div>
 </body>
 </html>
